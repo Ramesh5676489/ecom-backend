@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 
 const dotenv = require("dotenv");
 const productRoutes = require("./routes/productRoutes");
+const authRoutes = require("./routes/authRoutes");
 
 dotenv.config();
 
@@ -12,6 +13,7 @@ app.use(express.json());
 
 app.use("/", productRoutes);
 
+app.use("/auth", authRoutes);
 mongoose
   .connect(process.env.MONGODB_URL)
   .then(() => {
