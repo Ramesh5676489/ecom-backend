@@ -14,6 +14,7 @@ const register = async (req, res) => {
         message: "Please Provide both email and password",
       });
     }
+
     const existingUser = await User.findOne({ email });
 
     if (existingUser) {
@@ -63,7 +64,7 @@ const login = async (req, res) => {
       });
     }
     const token = jwt.sign(
-      { email: user.email, role: user.role },
+      { email: user.email, role: user.role, _id: user._id },
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
@@ -90,8 +91,74 @@ const logout = (req, res) => {
   });
 };
 
+const findOneAndUpdate = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const updateData = req.body.update;
+    if (!email || !updateData) {
+      return res
+        .status(400)
+        .json({ message: "Email and update data required" });
+    }
+    if (updateData.password) {
+      updateData.password = await bcrypt.hash(updateData.password, 10);
+    }
+    const user = await User.findOneAndUpdate({ email }, updateData, {
+      new: true,
+    });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.json({ message: "User updated", user });
+  } catch (error) {
+    console.log(error.message);
+    res.status(500).json({ message: "Something went wrong" });
+  }
+};
+
+const findOneAndDelete = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ message: "Email required" });
+    }
+    const user = await User.findOneAndDelete({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.json({ message: "User deleted", user });
+  } catch (error) {
+    console.log(error.message);
+    res.status(500).json({ message: "Something went wrong" });
+  }
+};
+
+const verifyUser = async (req, res) => {
+  const token = req.cookies.jwt;
+  if (!token) {
+    return res.status(401).json({
+      authenticated: false,
+    });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    res.status(200).json({
+      authenticated: true,
+      user: decoded,
+    });
+  } catch (error) {
+    res.status(401).json({
+      authenticated: false,
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
   logout,
+  findOneAndUpdate,
+  findOneAndDelete,
+  verifyUser,
 };
